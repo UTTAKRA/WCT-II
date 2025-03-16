@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Management</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+
+        h2 {
+            margin-bottom: 20px;
+        }
+
+        #student-form {
+            width: 100%;
+            max-width: 500px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        input, button {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            border: none;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        table {
+            width: 100%;
+            max-width: 800px;
+            border-collapse: collapse;
+            background: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+            word-wrap: break-word;
+            max-width: 200px; /* Prevents long names from breaking layout */
+        }
+
+        th {
+            background: #007bff;
+            color: white;
+        }
+
+        td.actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .actions button {
+            padding: 5px 10px;
+            font-size: 14px;
+            border-radius: 5px;
+            cursor: pointer;
+            border: none;
+        }
+
+        .actions .edit {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .actions .edit:hover {
+            background-color: #218838;
+        }
+
+        .actions .delete {
+            background-color: red;
+            color: white;
+        }
+
+        .actions .delete:hover {
+            background-color: darkred;
+        }
+
+        @media (max-width: 600px) {
+            table {
+                font-size: 14px;
+            }
+            th, td {
+                padding: 8px;
+            }
+            .actions button {
+                padding: 5px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h2>Student Management</h2>
+
+    <form id="student-form">
+        <input type="hidden" id="student-id">
+        <input type="text" id="name" placeholder="Name" required>
+        <input type="number" id="age" placeholder="Age" required min="1">
+        <input type="text" id="contact" placeholder="Contact" required>
+        <button type="submit">Add Student</button>
+    </form>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Age</th>
+                <th>Contact</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="student-list"></tbody>
+    </table>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            fetchStudents();
+
+            document.getElementById("student-form").addEventListener("submit", function (e) {
+                e.preventDefault();
+                let id = document.getElementById("student-id").value;
+                let name = document.getElementById("name").value;
+                let age = document.getElementById("age").value;
+                let contact = document.getElementById("contact").value;
+
+                if (age <= 0) {
+                    alert("Age must be a positive number greater than zero.");
+                    return;
+                }
+
+                let action = id ? "edit" : "add";
+
+                fetch("data.php", {
+                    method: "POST",
+                    body: JSON.stringify({ action, id, name, age, contact }),
+                    headers: { "Content-Type": "application/json" }
+                }).then(() => {
+                    fetchStudents();
+                    document.getElementById("student-form").reset();
+                    document.getElementById("student-id").value = "";
+                });
+            });
+        });
+
+        function fetchStudents() {
+            fetch("data.php")
+                .then(response => response.json())
+                .then(data => {
+                    let studentList = document.getElementById("student-list");
+                    studentList.innerHTML = "";
+                    data.forEach(student => {
+                        studentList.innerHTML += `
+                            <tr>
+                                <td>${student.id}</td>
+                                <td>${student.name}</td>
+                                <td>${student.age}</td>
+                                <td>${student.contact}</td>
+                                <td class="actions">
+                                    <button class="edit" onclick="editStudent(${student.id}, '${student.name}', ${student.age}, '${student.contact}')">Edit</button>
+                                    <button class="delete" onclick="deleteStudent(${student.id})">Delete</button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                });
+        }
+
+        function editStudent(id, name, age, contact) {
+            document.getElementById("student-id").value = id;
+            document.getElementById("name").value = name;
+            document.getElementById("age").value = age;
+            document.getElementById("contact").value = contact;
+        }
+
+        function deleteStudent(id) {
+            if (confirm("Are you sure you want to delete this student?")) {
+                fetch("data.php", {
+                    method: "POST",
+                    body: JSON.stringify({ action: "delete", id }),
+                    headers: { "Content-Type": "application/json" }
+                }).then(() => fetchStudents());
+            }
+        }
+    </script>
+</body>
+</html>
